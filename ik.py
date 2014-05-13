@@ -98,8 +98,8 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
         
     return (alphaNew, betaNew, gammaNew)
 
-def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition):
-
+def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, LAMBDA=200):
+    #alpha, beta and gamma in radians.
     def calcPos(L1, L2, L3, alpha, beta, gamma, origin):
         position=[0,0,0]
         projL=L1+L2*math.cos(beta)+L3*math.cos(beta-gamma)
@@ -112,7 +112,7 @@ def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition):
     
     def calcDist(targetPos, actualPos):
         startDistance=math.sqrt((targetPosition[0]-actualPos[0])**2+(targetPosition[1]-actualPos[1])**2+(targetPosition[2]-actualPos[2])**2)
-
+##        print('Distance to target: %s' % startDistance)
         return startDistance
 
     ## Starting Position:
@@ -156,8 +156,6 @@ def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition):
 ##    print(jacobian)
     matrixI=np.identity(3)
     
-    LAMBDA=1
-
     varAngles=jacobian*jacobian.T+LAMBDA**2*matrixI
     varAngles=jacobian.T*varAngles.I
     varAngles=varAngles*varPos
