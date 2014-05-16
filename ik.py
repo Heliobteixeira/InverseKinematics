@@ -98,7 +98,7 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
         
     return (alphaNew, betaNew, gammaNew)
 
-def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, LAMBDA=200):
+def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition):
     #alpha, beta and gamma in radians.
     def calcPos(L1, L2, L3, alpha, beta, gamma, origin):
         position=[0,0,0]
@@ -120,31 +120,26 @@ def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, LAMBD
 
     startDistance=calcDist(targetPosition, startPosition)
 
-##    print('origin:', origin[0], origin[1], origin[2])
-##    print('(alpha, beta, gamma): ' ,math.degrees(alpha), math.degrees(beta), math.degrees(gamma))
-##    print('StartingPosition: ' ,startPosition)
-##    print('TargetPosition: ', targetPosition)
-##    print('StartingDistance: %s' % (startDistance))
-
-    #print("Current Distance:"+str(round(iDist,2))+"xRot:"+str(int(xRot))+"yRot:"+str(int(yRot)))
-##    x1=(x-x0)/1
-##    y1=(y-y0)/1
-
     jacobian=[[0,0,0],
               [0,0,0],
               [0,0,0]]
-                                                                     
-    jacobian[0][0] = -math.sin(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(gamma))
-    jacobian[0][1] = -math.cos(alpha)*(L2*math.sin(beta)+L3*math.sin(gamma))
-    jacobian[0][2] = -L3*math.cos(alpha)*math.sin(gamma)
+
+##    x = cos(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma))    
+##    y = sin(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma)) 
+##    z = L2sin(beta)+L3sin(beta-gamma)
     
-    jacobian[1][0] = math.cos(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(gamma))
-    jacobian[1][1] = -math.sin(alpha)*(L2*math.sin(beta)+L3*math.sin(gamma))
-    jacobian[1][2] = -L3*math.sin(alpha)*math.sin(gamma)
+                                                                     
+    jacobian[0][0] = -math.sin(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(beta-gamma))
+    jacobian[0][1] = -math.cos(alpha)*(L2*math.sin(beta)+L3*math.sin(beta-gamma))
+    jacobian[0][2] = L3*math.cos(alpha)*math.sin(beta-gamma)
+    
+    jacobian[1][0] = math.cos(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(beta-gamma))
+    jacobian[1][1] = -math.sin(alpha)*(L2*math.sin(beta)+L3*math.sin(beta-gamma))
+    jacobian[1][2] = L3*math.sin(alpha)*math.sin(beta-gamma)
     
     jacobian[2][0] = 0
-    jacobian[2][1] = L2*math.cos(beta)+L3*math.cos(gamma)
-    jacobian[2][2] = L3*math.cos(gamma)                           
+    jacobian[2][1] = L2*math.cos(beta)+L3*math.cos(beta-gamma)
+    jacobian[2][2] = -L3*math.cos(beta-gamma)                           
 
     varPos=np.matrix([[targetPosition[0]-startPosition[0]],
                       [targetPosition[1]-startPosition[1]],
@@ -152,13 +147,16 @@ def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, LAMBD
     
     ##varPos=varPos.T ##Confirmar!!!
     
-    jacobian=np.matrix(jacobian)
+    jacobianM=np.matrix(jacobian)
 ##    print(jacobian)
-    matrixI=np.identity(3)
     
-    varAngles=jacobian*jacobian.T+LAMBDA**2*matrixI
-    varAngles=jacobian.T*varAngles.I
-    varAngles=varAngles*varPos
+##    varAngles=jacobian*jacobian.T+LAMBDA**2*matrixI
+##    varAngles=jacobian.T*varAngles.I
+##    varAngles=varAngles*varPos
+
+    pseudoInverseM=np.linalg.pinv(jacobianM)
+    varAngles=pseudoInverseM*varPos
+
     
 ##    print("varPos:",varPos)
 ##    print("Jacobian:",jacobian)
