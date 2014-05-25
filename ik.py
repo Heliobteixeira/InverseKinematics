@@ -58,14 +58,14 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
     ##   beta     >    alpha - 90      (FemurAngle in relation to Coxa)
     ##   gamma    >    180 - beta      (TibiaAngle in relation to Femur)
     
-    print('Moving to:'+str(destXYZ))
+    #print('Moving to:'+str(destXYZ))
     xf=float(destXYZ[0])
     yf=float(destXYZ[1])
     Zoffset=float(oriXYZ[2])-float(destXYZ[2])
 
 
     L1=math.sqrt(xf**2+yf**2)
-    print('L1='+str(L1))
+    #print('L1='+str(L1))
 
 ##  Changed gamma angle computation from original since I work with angles (+90/-90) around X axis (not Y)
     if xf==0:
@@ -78,7 +78,7 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
 
    
     L=math.sqrt(Zoffset**2+(L1-coxaLength)**2)
-    print('L='+str(L))
+    #print('L='+str(L))
 
     alpha1=math.acos(Zoffset/L)   
     alpha2=math.acos((tibiaLength**2-femurLength**2-L**2)/(-2*femurLength*L)) ##multiplicar racio por -1 para simplificar
@@ -92,9 +92,9 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
     betaNew =alpha-math.pi/2
     gammaNew=math.pi-beta
 
-    print('alpha='+str(math.degrees(alphaNew)))
-    print('beta='+str(math.degrees(betaNew)))
-    print('gamma='+str(math.degrees(gammaNew)))
+    #print('alpha='+str(math.degrees(alphaNew)))
+    #print('beta='+str(math.degrees(betaNew)))
+    #print('gamma='+str(math.degrees(gammaNew)))
         
     return (alphaNew, betaNew, gammaNew)
 
