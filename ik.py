@@ -1,5 +1,5 @@
 from __future__ import division
-import math
+from math import *
 import numpy as np
 
 def ikJacobian2DOF(Length1, Length2, alpha1, alpha2, oriX, oriY,  x, y):
@@ -10,13 +10,13 @@ def ikJacobian2DOF(Length1, Length2, alpha1, alpha2, oriX, oriY,  x, y):
     y=float(y)
     
 
-    theta1=alpha1/(180/math.pi)
-    theta2=alpha2/(180/math.pi)
+    theta1=alpha1/(180/pi)
+    theta2=alpha2/(180/pi)
     
-    x0=oriX+L1*math.cos(theta1)+L2*math.cos(theta1-theta2)
-    y0=oriY+L1*math.sin(theta1)+L2*math.sin(theta1-theta2)
+    x0=oriX+L1*cos(theta1)+L2*cos(theta1-theta2)
+    y0=oriY+L1*sin(theta1)+L2*sin(theta1-theta2)
 
-    iDist=math.sqrt((x-x0)**2+(y-y0)**2)
+    iDist=sqrt((x-x0)**2+(y-y0)**2)
 
     #print("Current Distance:"+str(round(iDist,2))+"xRot:"+str(int(xRot))+"yRot:"+str(int(yRot)))
     x1=(x-x0)/1
@@ -25,10 +25,10 @@ def ikJacobian2DOF(Length1, Length2, alpha1, alpha2, oriX, oriY,  x, y):
     if iDist>0:
 
         Jacobian = [[0,0],[0,0]]
-        Jacobian[0][0]=-L1*math.sin(theta1)-L2*math.sin(theta1-theta2)
-        Jacobian[0][1]=L2*math.sin(theta1-theta2)
-        Jacobian[1][0]=L1*math.cos(theta1)+L2*math.cos(theta1-theta2)
-        Jacobian[1][1]=-L2*math.cos(theta1-theta2)
+        Jacobian[0][0]=-L1*sin(theta1)-L2*sin(theta1-theta2)
+        Jacobian[0][1]=L2*sin(theta1-theta2)
+        Jacobian[1][0]=L1*cos(theta1)+L2*cos(theta1-theta2)
+        Jacobian[1][1]=-L2*cos(theta1-theta2)
 
         det=Jacobian[0][0]*Jacobian[1][1]-Jacobian[0][1]*Jacobian[1][0]
         if (det==0):
@@ -64,105 +64,159 @@ def ikAnalytical3DOF(coxaLength, femurLength, tibiaLength, oriXYZ, destXYZ):
     Zoffset=float(oriXYZ[2])-float(destXYZ[2])
 
 
-    L1=math.sqrt(xf**2+yf**2)
+    L1=sqrt(xf**2+yf**2)
     #print('L1='+str(L1))
 
 ##  Changed gamma angle computation from original since I work with angles (+90/-90) around X axis (not Y)
     if xf==0:
         if yf>0:
-            gamma=math.pi/2
+            gamma=pi/2
         else:
-            gamma=-math.pi/2
+            gamma=-pi/2
     else:
-        gamma=math.atan(yf/xf) 
+        gamma=atan(yf/xf) 
 
    
-    L=math.sqrt(Zoffset**2+(L1-coxaLength)**2)
-    #print('L='+str(L))
+    L=sqrt(Zoffset**2+(L1-coxaLength)**2)
 
-    alpha1=math.acos(Zoffset/L)   
-    alpha2=math.acos((tibiaLength**2-femurLength**2-L**2)/(-2*femurLength*L)) ##multiplicar racio por -1 para simplificar
-    alpha=alpha1+alpha2
+    try:
+        alpha1=acos(Zoffset/L)   
+        alpha2=acos((tibiaLength**2-femurLength**2-L**2)/(-2*femurLength*L)) ##multiplicar racio por -1 para simplificar
+        alpha=alpha1+alpha2
 
-    beta=math.acos((L**2-tibiaLength**2-femurLength**2)/(-2*tibiaLength*femurLength)) ## "
-
+        beta=acos((L**2-tibiaLength**2-femurLength**2)/(-2*tibiaLength*femurLength)) ## "    
+    except Exception, e:
+        print('Error: Unable to calculate angles...', e)
+        return False
+    else:
+        pass
+    finally:
+        pass
 
     ## Proceeding to conversion acoording to description
     alphaNew=gamma
-    betaNew =alpha-math.pi/2
-    gammaNew=math.pi-beta
+    betaNew =alpha-pi/2
+    gammaNew=pi-beta
 
-    #print('alpha='+str(math.degrees(alphaNew)))
-    #print('beta='+str(math.degrees(betaNew)))
-    #print('gamma='+str(math.degrees(gammaNew)))
+    #print('alpha='+str(degrees(alphaNew)))
+    #print('beta='+str(degrees(betaNew)))
+    #print('gamma='+str(degrees(gammaNew)))
         
     return (alphaNew, betaNew, gammaNew)
 
-def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition):
+def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, maxAngleDisp, precision=0.5, maxiterations=100):
     #alpha, beta and gamma in radians.
+    listofangularinc=[] # Returns a list of all necessary angular displacements
+
     def calcPos(L1, L2, L3, alpha, beta, gamma, origin):
         position=[0,0,0]
-        projL=L1+L2*math.cos(beta)+L3*math.cos(beta-gamma)
-        position[0]=origin[0] + math.cos(alpha)*projL
-        position[1]=origin[1] + math.sin(alpha)*projL
-        position[2]=origin[2] + L2*math.sin(beta) + L3*math.sin(beta-gamma)
+        
+        projL=L1+L2*cos(beta)+L3*cos(beta-gamma)
+        position[0]=origin[0] + cos(alpha)*projL
+        position[1]=origin[1] + sin(alpha)*projL
+        position[2]=origin[2] + L2*sin(beta) + L3*sin(beta-gamma)
 
         return position
-
     
     def calcDist(targetPos, actualPos):
-        startDistance=math.sqrt((targetPosition[0]-actualPos[0])**2+(targetPosition[1]-actualPos[1])**2+(targetPosition[2]-actualPos[2])**2)
 ##        print('Distance to target: %s' % startDistance)
-        return startDistance
+        return sqrt((targetPosition[0]-actualPos[0])**2+(targetPosition[1]-actualPos[1])**2+(targetPosition[2]-actualPos[2])**2)
 
     ## Starting Position:
-    startPosition=calcPos(L1, L2, L3, alpha, beta, gamma, origin)
+    startposition=calcPos(L1, L2, L3, alpha, beta, gamma, origin)
 
-    startDistance=calcDist(targetPosition, startPosition)
+    currentposition=startposition
+    currentdistance=calcDist(targetPosition, currentposition)
 
-    jacobian=[[0,0,0],
-              [0,0,0],
-              [0,0,0]]
+    i=0
+    while currentdistance > precision and i < maxiterations:
+        i += 1
 
-##    x = cos(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma))    
-##    y = sin(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma)) 
-##    z = L2sin(beta)+L3sin(beta-gamma)
-    
-                                                                     
-    jacobian[0][0] = -math.sin(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(beta-gamma))
-    jacobian[0][1] = -math.cos(alpha)*(L2*math.sin(beta)+L3*math.sin(beta-gamma))
-    jacobian[0][2] = L3*math.cos(alpha)*math.sin(beta-gamma)
-    
-    jacobian[1][0] = math.cos(alpha)*(L1+L2*math.cos(beta)+L3*math.cos(beta-gamma))
-    jacobian[1][1] = -math.sin(alpha)*(L2*math.sin(beta)+L3*math.sin(beta-gamma))
-    jacobian[1][2] = L3*math.sin(alpha)*math.sin(beta-gamma)
-    
-    jacobian[2][0] = 0
-    jacobian[2][1] = L2*math.cos(beta)+L3*math.cos(beta-gamma)
-    jacobian[2][2] = -L3*math.cos(beta-gamma)                           
+        jacobian=[[0,0,0],
+                  [0,0,0],
+                  [0,0,0]]
 
-    varPos=np.matrix([[targetPosition[0]-startPosition[0]],
-                      [targetPosition[1]-startPosition[1]],
-                      [targetPosition[2]-startPosition[2]]])
-    
-    ##varPos=varPos.T ##Confirmar!!!
-    
-    jacobianM=np.matrix(jacobian)
-##    print(jacobian)
-    
-##    varAngles=jacobian*jacobian.T+LAMBDA**2*matrixI
-##    varAngles=jacobian.T*varAngles.I
-##    varAngles=varAngles*varPos
+    ##    x = cos(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma))    
+    ##    y = sin(alpha)*(L1+L2cos(beta)+L3cos(beta-gamma)) 
+    ##    z = L2sin(beta)+L3sin(beta-gamma)
+        
+                                                                         
+        jacobian[0][0] = -sin(alpha)*(L1+L2*cos(beta)+L3*cos(beta-gamma))
+        jacobian[0][1] = -cos(alpha)*(L2*sin(beta)+L3*sin(beta-gamma))
+        jacobian[0][2] = L3*cos(alpha)*sin(beta-gamma)
+        
+        jacobian[1][0] = cos(alpha)*(L1+L2*cos(beta)+L3*cos(beta-gamma))
+        jacobian[1][1] = -sin(alpha)*(L2*sin(beta)+L3*sin(beta-gamma))
+        jacobian[1][2] = L3*sin(alpha)*sin(beta-gamma)
+        
+        jacobian[2][0] = 0
+        jacobian[2][1] = L2*cos(beta)+L3*cos(beta-gamma)
+        jacobian[2][2] = -L3*cos(beta-gamma)                           
 
-    pseudoInverseM=np.linalg.pinv(jacobianM)
-    varAngles=pseudoInverseM*varPos
+        varPos=np.matrix([[targetPosition[0]-currentposition[0]],
+                          [targetPosition[1]-currentposition[1]],
+                          [targetPosition[2]-currentposition[2]]])
+        
+        ##varPos=varPos.T ##Confirmar!!!
+        
+        jacobianM=np.matrix(jacobian)
 
-    
-##    print("varPos:",varPos)
-##    print("Jacobian:",jacobian)
-##    print("alpha:",math.degrees(varAngles[0]),"beta:",math.degrees(varAngles[1]),"gamma:",math.degrees(varAngles[2]))
+        pseudoInverseM=np.linalg.pinv(jacobianM)
+        varAngles=pseudoInverseM*varPos
 
-##    print('ReachedPosition: ' ,calcPos(L1, L2, L3, varAngles[0], varAngles[1], varAngles[2], origin))
-    ##print('JacobianInverse\n',jacobian.I)
-         
-    return varAngles
+        currMaxAngle = abs(varAngles).max() # Returns the maximum absolute angle from the angles matrix
+
+        if currMaxAngle > maxAngleDisp:
+            fact = float(maxAngleDisp) / currMaxAngle
+
+            varAngles = varAngles*fact
+
+        (alpha, beta, gamma)=(alpha+varAngles[0,0], beta+varAngles[1,0], gamma+varAngles[2,0])
+
+        # Updating current distance to target
+        currentposition=calcPos(L1, L2, L3, alpha, beta, gamma, origin)
+        currentdistance=calcDist(targetPosition, currentposition)
+
+        listofangularinc.append((varAngles[0,0], varAngles[1,0], varAngles[2,0])) # Adds calculated angular displacements
+
+        jacobian=None
+        varPos=None
+        jacobianM=None
+        pseudoInverseM=None
+        varAngles=None
+
+    ##    print("varPos:",varPos)
+    ##    print("Jacobian:",jacobian)
+    ##    print("alpha:",degrees(varAngles[0]),"beta:",degrees(varAngles[1]),"gamma:",degrees(varAngles[2]))
+
+    ##    print('ReachedPosition: ' ,calcPos(L1, L2, L3, varAngles[0], varAngles[1], varAngles[2], origin))
+        ##print('JacobianInverse\n',jacobian.I)
+
+    if currentdistance <= precision:
+        return listofangularinc
+    else:
+        print('Unable to reach target position. Current distance:', currentdistance)
+        return False
+
+def getjointanglesforpath(coxalength, femurlength, tibialength, origin, p0, p1, nbrsteps=50):
+    # Returns a list of tuples containing the sequencial joint angles (in degrees) to move the
+    # limb along a linear path
+    listofjointangles=[]
+    p0=np.array(p0)
+    p1=np.array(p1)
+    convertradstointdegrees = lambda r: round(degrees(r),1)
+
+    for i in range(1, nbrsteps+1):     
+        t=i/nbrsteps
+        #print(t)
+        pm=linearbezier(p0, p1, t)
+        #print('Moving to ', pm)
+        jointangles=ikAnalytical3DOF(coxalength, femurlength, tibialength, origin, list(pm))
+        listofjointangles.append(map(convertradstointdegrees, jointangles))
+
+    return listofjointangles
+
+
+def linearbezier(p0, p1, t):
+    ## p0 and p1 are of type numpy.array
+    return p0+t*(p1-p0)
