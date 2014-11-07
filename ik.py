@@ -1,6 +1,7 @@
 from __future__ import division
 from math import *
 import numpy as np
+import pdb
 
 def ikJacobian2DOF(Length1, Length2, alpha1, alpha2, oriX, oriY,  x, y):
     maxIterations=300
@@ -198,9 +199,11 @@ def ikJacobian3DOF(L1, L2, L3, alpha, beta, gamma, origin, targetPosition, maxAn
         print('Unable to reach target position. Current distance:', currentdistance)
         return False
 
-def getjointanglesforpath(coxalength, femurlength, tibialength, origin, p0, p1, nbrsteps=50):
-    # Returns a list of tuples containing the sequencial joint angles (in degrees) to move the
-    # limb along a linear path
+def generatelinearpath(coxalength, femurlength, tibialength, origin, p0, p1, nbrsteps=50):
+    """ 
+        Returns a list of tuples containing the sequencial joint angles (in degrees) to move the
+        limb along a linear path 
+    """
     listofjointangles=[]
     p0=np.array(p0)
     p1=np.array(p1)
@@ -211,12 +214,45 @@ def getjointanglesforpath(coxalength, femurlength, tibialength, origin, p0, p1, 
         #print(t)
         pm=linearbezier(p0, p1, t)
         #print('Moving to ', pm)
-        jointangles=ikAnalytical3DOF(coxalength, femurlength, tibialength, origin, list(pm))
-        listofjointangles.append(map(convertradstointdegrees, jointangles))
+        jointradangles=ikAnalytical3DOF(coxalength, femurlength, tibialength, origin, list(pm))
+        jointdegangles=map(convertradstointdegrees, jointradangles)
+        positionrow=(jointdegangles, tuple(pm))
+        listofjointangles.append(positionrow)
 
     return listofjointangles
 
+def generatequadraticpath(coxalength, femurlength, tibialength, origin, p0, p1, p2, nbrsteps=50):
+    """ 
+        Returns a list of tuples containing the sequencial joint angles (in degrees) to move the
+        limb along a quadratic bezier curve
+        TODO: Consider condensing getjointanglesforquadraticpath() and getjointanglesforlinearpath()
+    """
+    listofjointangles=[]
+    p0=np.array(p0)
+    p1=np.array(p1)
+    p2=np.array(p2)
+    #print('Going from ',list(p0), ' to ', list(p1), ' and then', list(p2))
+    convertradstointdegrees = lambda r: round(degrees(r),1)
+
+    for i in range(1, nbrsteps+1):     
+        t=i/nbrsteps
+        #print(t)
+        pm=quadraticbezier(p0, p1, p2, t)
+        #print(t, pm)
+        #print('Moving to ', pm)
+        jointradangles=ikAnalytical3DOF(coxalength, femurlength, tibialength, origin, list(pm))
+        jointdegangles=map(convertradstointdegrees, jointradangles)
+        positionrow=(jointdegangles, tuple(pm))
+        listofjointangles.append(positionrow)
+
+    return listofjointangles
 
 def linearbezier(p0, p1, t):
+    """ Returns the [t]th position of the linear bezier curve defined by the points p0 and p1"""
     ## p0 and p1 are of type numpy.array
     return p0+t*(p1-p0)
+
+def quadraticbezier(p0, p1, p2, t):
+    """ Returns the [t]th position of the quadratic bezier curve defined by the points p0, p1 and p2 """
+    ## p0, p1 and p2 are of type numpy.array
+    return (1-t)**2*p0+2*(1-t)*t*p1+t**2*p2
